@@ -9,4 +9,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME) //sie ist zu laufzeit verfügbar und wir können über die
 // reflections schauen, ob sie vorhanden bzw aktiv ist.
 public @interface Entity {
+    String name () default "";
 }

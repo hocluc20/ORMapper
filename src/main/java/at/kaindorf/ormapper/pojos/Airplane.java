@@ -6,12 +6,12 @@ import at.kaindorf.ormapper.annotations.Id;
 
 import java.time.LocalDate;
 
-@Entity
+@Entity(name = "airbus")
 public class Airplane {
 
     @Id
     private Long airplaneId;
-    @Column(lenght = 100, unique = true)
+    @Column(lenght = 100, unique = true, nullable = false)
     private String name;
 
     private Double wingspan;

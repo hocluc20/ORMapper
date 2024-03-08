@@ -1,12 +1,19 @@
 package at.kaindorf.ormapper.database;
 
+import at.kaindorf.ormapper.annotations.Column;
+import at.kaindorf.ormapper.annotations.Entity;
+import at.kaindorf.ormapper.annotations.Id;
 import at.kaindorf.ormapper.io.IO_Access;
+import at.kaindorf.ormapper.pojos.Airplane;
 
 import java.io.IOException;
+import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+
+import static at.kaindorf.ormapper.database.SQLDataTypes.SQL_TYPES;
 
 public class EntityManager {
     private DB_Access dbAccess = DB_Access.getInstance();
@@ -51,19 +58,49 @@ public class EntityManager {
     }
 
     public void createTable (Class<?> entityClass){
-        String tableName = entityClass.getSimpleName().toLowerCase();
-        StringBuilder sqlString = new StringBuilder("CREATE TABLE ")
-                .append(tableName)
-                .append(" (");
+        //entry point for reflections??????
+
+        //Class<?> clazz1 = Airplane.class;
+        Class<?> clazz2 = entityClass.getClass();
+
+        String annotationname = entityClass.getAnnotation(Entity.class).name();
+        String tableName = annotationname.isBlank() ?  entityClass.getSimpleName().toLowerCase() : annotationname ;
+        String createTableString = String.format("CREATE TABLE %s (", tableName);
+
+
+        // getDeclaredFields = sind die private auch dabei
+        // getFields = public oder inherited sind
 
         for (Field field: entityClass.getDeclaredFields()){
-            System.out.println(field.getName());
             String columnName = field.getName().toLowerCase();
-            String datatype = "??";
-            String contraint = "??";
+            String datatype = SQL_TYPES.get(field.getType());
+            String constraint = field.isAnnotationPresent(Id.class) ? " PRIMARY KEY" : "";
+
+            if(field.isAnnotationPresent(Column.class)){
+                Column column = field.getDeclaredAnnotation(Column.class);
+                //change columname if required
+                String name = column.name();
+                columnName = name.isBlank() ? columnName : name;
+                //Insert NOT NULL if required
+                constraint += column.nullable() ? "" : " NOT NULL";
+                constraint += column.unique() ? " UNIQUE" : "";
+
+                //change Varchar-length if required
+                if(field.getType().equals(String.class) && column.lenght() != 255){
+                    datatype = datatype.replace("255", column.lenght()+"");
+                }
+            }
+            createTableString += String.format("%s %s%s,\n", columnName,datatype,constraint);
+        }
+        createTableString = createTableString.substring(0,createTableString.lastIndexOf(","))+");";
+        try {
+            statement.execute(createTableString);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
 
-        System.out.println(sqlString);
+
+        System.out.println(createTableString);
     }
 
     public static void main(String[] args) {
